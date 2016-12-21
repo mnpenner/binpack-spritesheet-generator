@@ -1,0 +1,21 @@
+{
+    "name": "mnpenner/spritepack",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mark Penner",
+            "email": "mark@mpen.ca"
+        }
+    ],
+    "require": {
+        "php": ">=5.6",
+        "ext-gd": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "SpritePack\\": ["src/"]
+        }
+    },
+    "bin": ["pack.php"]
+}
