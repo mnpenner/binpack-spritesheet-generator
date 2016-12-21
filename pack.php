@@ -3,7 +3,7 @@
 use SpritePack\Image;
 use SpritePack\Packer;
 
-require __DIR__.'/vendor/autoload.php';
+require __DIR__ . '/vendor/autoload.php';
 
 class Program {
 
@@ -19,7 +19,7 @@ class Program {
         return $im;
     }
 
-    public static function main() {
+    public static function main($args) {
         /** @var Image[] $images */
         $images = [];
         $di = new DirectoryIterator('images');
@@ -59,16 +59,26 @@ class Program {
         $packer = new Packer();
         $packer->fit($images);
         $spritesheet = self::imageCreateTrueColorTransparent($packer->root->width, $packer->root->height);
-        $black = imagecolorallocate($spritesheet, 0, 0, 0);
-        foreach($images as $i => $img) {
-            // $r = mt_rand(0, 255);
-            // $g = mt_rand(0, 255);
-            // $b = mt_rand(0, 255);
-            // imagefilledrectangle($spritesheet, $img->fit->x, $img->fit->y, $img->fit->x+$img->width, $img->fit->y+$img->height, imagecolorallocatealpha($spritesheet, $r, $g, $b, 64));
-            // imagerectangle($spritesheet, $img->fit->x, $img->fit->y, $img->fit->x+$img->width, $img->fit->y+$img->height, imagecolorallocate($spritesheet, $r, $g, $b));
-            imagestring($spritesheet, 5, $img->fit->x + 2, $img->fit->y + 2, $i, $black);
-            imagecopy($spritesheet, self::imageCreateFromAny($img->filePath), $img->fit->x, $img->fit->y, 0, 0, $img->width, $img->height);
+
+        $test = in_array('--test', $args);
+
+        if($test) {
+            $black = imagecolorallocate($spritesheet, 0, 0, 0);
+            foreach($images as $i => $img) {
+                $r = mt_rand(0, 255);
+                $g = mt_rand(0, 255);
+                $b = mt_rand(0, 255);
+                imagefilledrectangle($spritesheet, $img->fit->x, $img->fit->y, $img->fit->x + $img->width - 1, $img->fit->y + $img->height - 1, imagecolorallocatealpha($spritesheet, $r, $g, $b, 64));
+                imagerectangle($spritesheet, $img->fit->x, $img->fit->y, $img->fit->x + $img->width - 1, $img->fit->y + $img->height - 1, imagecolorallocate($spritesheet, $r, $g, $b));
+                imagestring($spritesheet, 5, $img->fit->x + 2, $img->fit->y + 2, $i, $black);
+            }
+        } else {
+            foreach($images as $i => $img) {
+                imagecopy($spritesheet, self::imageCreateFromAny($img->filePath), $img->fit->x, $img->fit->y, 0, 0, $img->width, $img->height);
+            }
         }
+
+
         $out = 'spritesheet.png';
         imagepng($spritesheet, $out);
         echo "wrote $out\n";
@@ -77,5 +87,5 @@ class Program {
 
 
 if(php_sapi_name() === 'cli' && __FILE__ == realpath($argv[0])) {
-    Program::main();
+    Program::main($argv);
 }
