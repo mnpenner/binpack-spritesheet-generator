@@ -5,6 +5,10 @@ use SpritePack\Packer;
 
 require __DIR__ . '/vendor/autoload.php';
 
+function ag($array, $key, $default=null) {
+    return array_key_exists($key, $array) ? $array[$key] : $default;
+}
+
 class Program {
 
     private static function imageCreateFromAny($filename) {
@@ -14,22 +18,43 @@ class Program {
     private static function imageCreateTrueColorTransparent($width, $height) {
         $im = imagecreatetruecolor($width, $height);
         imagesavealpha($im, true);
-        $transColor = imagecolorallocatealpha($im, 0, 0, 0, 127);
+        $transColor = imagecolorallocatealpha($im, 0, 0, 0, 127); // 127 indicates completely transparent
         imagefill($im, 0, 0, $transColor);
         return $im;
     }
 
-    public static function main($args) {
+    public static function main($cliArgs) {
+        $options = [];
+        $args = [];
+        
+        $command = array_shift($cliArgs);
+        
+        foreach($cliArgs as $arg) {
+            if($arg[0] === '-') {
+                $options[ltrim($arg,'-')] = true;
+            } else {
+                $args[] = $arg;
+            }
+        }
+        
+        if(count($args) < 1) {
+            fwrite(STDERR, "usage: $command <input-dir> [output-file]\n");
+            exit(1);
+        }
+        
+        $sourceDir = ag($args,0,'images');
+        $outFile = ag($args,1,'spritesheet.png');
+        
         /** @var Image[] $images */
         $images = [];
-        $di = new DirectoryIterator('images');
+        $di = new DirectoryIterator($sourceDir);
         foreach($di as $f) {
             /** @var $f DirectoryIterator */
             if(!$f->isFile()) continue;
             $filePath = $f->getPathname();
             list($w, $h) = getimagesize($filePath);
             if(!$w || !$h) {
-                echo "could not get width/height for $filePath -- skipping\n";
+                fwrite(STDERR,"could not get width/height for $filePath -- skipping\n");
                 continue;
             }
             $images[] = new Image($filePath, $w, $h);
@@ -54,15 +79,13 @@ class Program {
             if($aMax < $bMax) return 1;
             if($aMin > $bMin) return -1;
             if($aMin < $bMin) return 1;
-            return strcmp($a->filePath, $b->filePath);
+            return strnatcasecmp($a->filePath, $b->filePath);
         });
         $packer = new Packer();
         $packer->fit($images);
         $spritesheet = self::imageCreateTrueColorTransparent($packer->root->width, $packer->root->height);
 
-        $test = in_array('--test', $args);
-
-        if($test) {
+        if(ag($options,'test')) {
             $black = imagecolorallocate($spritesheet, 0, 0, 0);
             foreach($images as $i => $img) {
                 $r = mt_rand(0, 255);
@@ -77,11 +100,9 @@ class Program {
                 imagecopy($spritesheet, self::imageCreateFromAny($img->filePath), $img->fit->x, $img->fit->y, 0, 0, $img->width, $img->height);
             }
         }
-
-
-        $out = 'spritesheet.png';
-        imagepng($spritesheet, $out);
-        echo "wrote $out\n";
+        
+        imagepng($spritesheet, $outFile);
+        echo "packed ".number_format(count($images))." images into $outFile\n";
     }
 }
 
